@@ -1,3 +1,5 @@
 *.sqlite
 .vscode
 .gitignore
+*.pyc
+config.py
