@@ -2,4 +2,4 @@
 .vscode
 .gitignore
 *.pyc
-config.py
+*.toml
