@@ -17,16 +17,16 @@ def fetch_system_data():
 
 def get_auth_token():
     request_url = 'https://login.eveonline.com/oauth/authorize?response_type=code&redirect_uri=https://localhost/oauth-callback&client_id=3cb60c8043f243568073d6a1fe2594bb&scope=esi-location.read_location.v1%20esi-ui.write_waypoint.v1'
-    #webbrowser.open(request_url)
+    webbrowser.open(request_url)
     callback_url = input("copy paste the full callback url here:\n")
     authorization_token = callback_url.split('code=')[1]
     return authorization_token
 
 def get_access_token(auth_code=None):
+    headers = {'Authorization': b'Basic ' + base64.b64encode(bytes(config['client_id'] + ':' + config['secret_key'], 'utf-8')), 'Content-Type': 'application/json'}
     if auth_code != None:
         request_url = 'https://login.eveonline.com/oauth/token'
-        headers = {'Authorization': b'Basic ' + base64.b64encode(bytes(config['client_id'] + ':' + config['secret_key'], 'utf-8')), 'Content-Type': 'application/json'}
-        data = {'grant_type': 'authorization_code', 'code': auth_code}
+        json = {'grant_type': 'authorization_code', 'code': auth_code}
         r = requests.post(request_url, headers=headers, json=data)
         js = r.json()
         config['access_token'] = js['access_token']
@@ -36,7 +36,23 @@ def get_access_token(auth_code=None):
         return
     if datetime.utcnow() > config['access_token_expiry']:
         print('access token expired, refreshing')
+        request_url = 'https://login.eveonline.com/oauth/token/?grant_type=refresh_token&refresh_token={}'.format(config['refresh_token'])
+        r = requests.post(request_url, headers=headers, data=None)
+        if r.status_code == 200:
+            js = r.json()
+            config['access_token'] = js['access_token']
+            config['refresh_token'] = js['refresh_token']
+            config['access_token_expiry'] = datetime.utcnow() + timedelta(seconds=js['expires_in'])
+            write_config(config)
+            return config['access_token']
+        else:
+            print('error refreshing access token')
 
+def write_waypoints(waypoints):
+    request_url = 'https://esi.evetech.net/latest/ui/autopilot/waypoint/?add_to_beginning=false&clear_other_waypoints={clear_waypoints}&datasource=tranquility&destination_id={destination_id}'
+    headers = {'Authorization': b'Bearer ' + base64.b64encode(bytes(config['client_id'] + ':' + config['secret_key'], 'utf-8')), 'Content-Type': 'application/json'}
+    r = requests.post(request_url.format(clear_waypoints='false', destination_id=waypoints[0]))
+    print(r)
 
 
 def get_config():
@@ -98,4 +114,5 @@ if __name__ == '__main__':
     for station in station_list: 
         if station[1] in owned_systems or station[2] >= 0.50:
             available_mission_stations.append(station[0])
-
+    print(available_mission_stations)
+    write_waypoints(available_mission_stations)
