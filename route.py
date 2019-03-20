@@ -42,13 +42,23 @@ def get_access_token(auth_code=None):
             return config['access_token']
         else:
             print('error refreshing access token')
-    else: return config['access_token']
+    return config['access_token']
+   
 
 def update_access_token(js):
     config['access_token'] = js['access_token']
     config['refresh_token'] = js['refresh_token']
     config['access_token_expiry'] = datetime.utcnow() + timedelta(seconds=js['expires_in'])
     write_config(config)
+
+def get_character_id():
+    request_url = 'https://login.eveonline.com/oauth/verify'
+    headers = {'Authorization': 'Bearer {}'.format(get_access_token())}
+    r = requests.get(request_url, headers=headers)
+    js = r.json()
+    if 'CharacterID' in js.keys():
+        return js['CharacterID']
+    else: return None
 
 
 def write_waypoints(waypoints):
@@ -64,6 +74,17 @@ def write_waypoints(waypoints):
             response = api.post_ui_autopilot_waypoint(False, clear_waypoints, waypoint)
         except ApiException as e:
             print(e)
+
+def get_character_location():
+    api = swagger_client.LocationApi()
+    api.api_client.set_default_header('User-Agent', 'FWRoute')
+    api.api_client.host = 'https//esi.evetech.net/'
+    api.api_client.configuration.access_token = get_access_token()
+    try:
+        response = api.get_characters_character_id_location(config['character_id'])
+        print(response)
+    except ApiException as e:
+        print(e)
 
 def get_config():
     try:
@@ -93,6 +114,11 @@ if __name__ == '__main__':
         get_access_token()
     else:
         get_access_token(get_auth_token())
+    if 'character_id' not in config.keys():
+        print('fetching char id')
+        config['character_id'] = get_character_id()
+        write_config(config)
+
     conn = sqlite3.connect('sqlite-latest.sqlite')
     curs = conn.cursor()
     factions = {'caldari': 500001, 'minmatar': 500002, 'amarr': 500003, 'gallente': 500004}
@@ -124,5 +150,4 @@ if __name__ == '__main__':
     for station in station_list: 
         if station[1] in owned_systems or station[2] >= 0.50:
             available_mission_stations.append(station[0])
-    print(available_mission_stations)
-    write_waypoints(available_mission_stations)
+    get_character_location()
