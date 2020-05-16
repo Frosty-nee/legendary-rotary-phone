@@ -1,0 +1,5 @@
+default_faction = 0
+client_id = "Your Application Client ID Here"
+secret_key = "Your Application Secret Key Here"
+refresh_token = ""
+access_token_expiry = ""
