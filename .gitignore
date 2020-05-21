@@ -4,3 +4,4 @@
 *.pyc
 *.toml
 swagger_client/
+venv/

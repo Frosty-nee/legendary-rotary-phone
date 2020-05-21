@@ -1,4 +1,4 @@
-#! python3
+#! python
 
 import sys
 import webbrowser
@@ -82,7 +82,6 @@ def get_character_location():
     api.api_client.configuration.access_token = get_access_token()
     try:
         response = api.get_characters_character_id_location(config['character_id'])
-        print(response)
     except ApiException as e:
         print(e)
 
@@ -110,11 +109,11 @@ def write_config(config_dict):
 
 if __name__ == '__main__':
     config = get_config()
-    if 'access_token' in config.keys():
+    if 'access_token' in config.keys() and config['access_token'] != '':
         get_access_token()
     else:
         get_access_token(get_auth_token())
-    if 'character_id' not in config.keys():
+    if 'character_id' not in config.keys() or config['character_id'] == '':
         print('fetching char id')
         config['character_id'] = get_character_id()
         write_config(config)
@@ -148,6 +147,8 @@ if __name__ == '__main__':
             owned_systems.append(system['solar_system_id'])
     available_mission_stations = []
     for station in station_list: 
-        if station[1] in owned_systems or station[2] >= 0.50:
+        if station[1] in owned_systems:
             available_mission_stations.append(station[0])
     get_character_location()
+    write_waypoints(available_mission_stations)
+    print('waypoints set')
